@@ -1,0 +1,73 @@
+/* Base styles for the whole page */
+body {
+    font-family: Arial, Arial, Helvetica, sans-serif;
+    font-size: 15px;
+    color: #555555;
+    background-color: beige;
+}
+
+/* List item styling for smaller, italic text */
+li {
+    font-size: 10px;
+    font-style: italic;
+    font-weight: normal;
+}
+
+/* Link color and no underline by default */
+a {
+    color: #020e77;
+    text-decoration: none;
+}
+
+/* Hover state for links */
+a:hover {
+    color: #7d86d8;
+    text-decoration: underline;
+}
+
+/* Visited link styling (currently unset) */
+a :visited {
+    /* no extra styling applied here */
+}
+
+/* Styled heading for resume list labels */
+.resumeListHeading {
+    font-weight: bold;
+    font-style: normal;
+}
+
+/* Underline helper class */
+.underline {
+    text-decoration: underline;
+}
+
+/* Justify text helper class */
+.justify {
+    text-align: justify;
+}
+
+/* Background image styling for the homepage */
+.homebg {
+    background-image: url("../images/homebg.jpg");
+    background-position: right;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+}
+
+/* Border box helper class */
+.box1 {
+    border-width: 1px;
+    border-style: solid;
+    border-color: grey;
+}
+
+/* Padding helper class */
+.box2 {
+    padding: 5px;
+}
+
+/* Margin helper class */
+.box3 {
+    margin: 50px;
+}
