@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio Pie Chart Visualizer</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #0f172a;
+            --border: #e2e8f0;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .dashboard {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            padding: 30px;
+            width: 100%;
+            max-width: 900px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+        }
+
+        h2 {
+            grid-column: 1 / -1;
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: var(--text);
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 10px;
+        }
+
+        .input-section {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        input {
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 14px;
+            flex: 1;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 20px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        button.remove-btn {
+            background-color: #ef4444;
+            padding: 4px 8px;
+            font-size: 12px;
+            font-weight: normal;
+        }
+
+        button.remove-btn:hover {
+            background-color: #dc2626;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+        }
+
+        li:last-child {
+            border-bottom: none;
+        }
+
+        .ticker-name {
+            font-weight: 600;
+            width: 60px;
+        }
+
+        .ticker-data {
+            color: #64748b;
+        }
+
+        .chart-section {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .empty-state {
+            color: #94a3b8;
+            text-align: center;
+            margin-top: 20px;
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <nav style="text-align: center; margin-bottom: 20px;">
+        <a href="../index.html" style="margin: 0 10px; text-decoration: none; color: var(--primary);">Home</a> |
+        <a href="./about.html" style="margin: 0 10px; text-decoration: none; color: var(--primary);">About</a> |
+        <a href="./resume.html" style="margin: 0 10px; text-decoration: none; color: var(--primary);">Resume</a>
+    </nav>
+
+    <div class="dashboard">
+        <h2>Portfolio Visualizer</h2>
+        
+        <div class="input-section">
+            <div class="input-group">
+                <input type="text" id="ticker" placeholder="Ticker (e.g. AAPL)" autocomplete="off">
+                <input type="number" id="amount" placeholder="Amount ($)" min="0" step="0.01">
+                <button onclick="addAsset()">Add</button>
+            </div>
+
+            <div>
+                <h3 style="margin-bottom: 10px; font-size: 16px;">Current Holdings</h3>
+                <ul id="portfolio-list">
+                    <p class="empty-state" id="empty-msg">No assets added yet. Add a ticker above to begin.</p>
+                </ul>
+            </div>
+        </div>
+
+        <div class="chart-section">
+            <canvas id="portfolioChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        let portfolio = [];
+        let chartInstance = null;
+
+        // A curated palette of distinct colors for the pie chart
+        const colors = [
+            '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+            '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16',
+            '#06b6d4', '#eab308', '#d946ef', '#22c55e', '#64748b'
+        ];
+
+        // Format number as currency
+        const formatter = new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+        });
+
+        // Main function to add a new stock to the array
+        function addAsset() {
+            const tickerInput = document.getElementById('ticker');
+            const amountInput = document.getElementById('amount');
+            
+            const ticker = tickerInput.value.trim().toUpperCase();
+            const amount = parseFloat(amountInput.value);
+
+            // Validation
+            if (!ticker) {
+                alert('Please enter a stock ticker.');
+                return;
+            }
+            if (isNaN(amount) || amount <= 0) {
+                alert('Please enter a valid amount greater than 0.');
+                return;
+            }
+
+            // Check if ticker already exists. If so, add to the existing amount.
+            const existingAsset = portfolio.find(item => item.ticker === ticker);
+            if (existingAsset) {
+                existingAsset.amount += amount;
+            } else {
+                portfolio.push({ ticker, amount });
+            }
+
+            // Clear inputs and refocus
+            tickerInput.value = '';
+            amountInput.value = '';
+            tickerInput.focus();
+
+            updateUI();
+        }
+
+        // Function to remove an asset
+        function removeAsset(index) {
+            portfolio.splice(index, 1);
+            updateUI();
+        }
+
+        // Master function to trigger UI updates
+        function updateUI() {
+            updateList();
+            updateChart();
+        }
+
+        // Updates the text list of holdings
+        function updateList() {
+            const list = document.getElementById('portfolio-list');
+            const emptyMsg = document.getElementById('empty-msg');
+            
+            list.innerHTML = '';
+            
+            if (portfolio.length === 0) {
+                list.innerHTML = '<p class="empty-state" id="empty-msg">No assets added yet. Add a ticker above to begin.</p>';
+                return;
+            }
+
+            // Calculate total for percentage calculation
+            const total = portfolio.reduce((sum, item) => sum + item.amount, 0);
+
+            portfolio.forEach((item, index) => {
+                const percentage = ((item.amount / total) * 100).toFixed(1);
+                const li = document.createElement('li');
+                
+                li.innerHTML = `
+                    <span class="ticker-name">${item.ticker}</span>
+                    <span class="ticker-data">${formatter.format(item.amount)} (${percentage}%)</span>
+                    <button class="remove-btn" onclick="removeAsset(${index})">Remove</button>
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        // Updates the Chart.js canvas
+        function updateChart() {
+            const ctx = document.getElementById('portfolioChart').getContext('2d');
+            const labels = portfolio.map(item => item.ticker);
+            const data = portfolio.map(item => item.amount);
+
+            // Destroy previous chart instance if it exists to prevent overlap
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            // Clear canvas if portfolio is empty
+            if (portfolio.length === 0) {
+                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                return;
+            }
+
+            // Generate pie chart
+            chartInstance = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: colors.slice(0, portfolio.length),
+                        borderWidth: 2,
+                        borderColor: '#ffffff',
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { padding: 20, font: { family: "'Segoe UI', sans-serif" } }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                // Format the tooltip to show exact dollar amounts
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) { label += ': '; }
+                                    if (context.parsed !== null) {
+                                        label += formatter.format(context.parsed);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Allow pressing "Enter" in the amount field to trigger the Add button
+        document.getElementById("amount").addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                addAsset();
+            }
+        });
+    </script>
+</body>
+</html>
